@@ -24,12 +24,8 @@ This tool helps you stay informed about the latest developments in AI by:
 - Python 3.8+
 - Required libraries:
   - feedparser
-  - requests
-  - openai (or similar client)
-  - beautifulsoup4
-  - scikit-learn
+   - openai (or similar client)
   - crawl4ai (for web crawling)
-  - python-dateutil (for date parsing)
   - pydantic
 
 ## Configuration
