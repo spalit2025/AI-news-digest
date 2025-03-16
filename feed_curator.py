@@ -35,7 +35,6 @@ BLOG_URLS ={
 }
 
 FIREWORKS_API_KEY=os.getenv("FIREWORKS_API_KEY")
-OPENAI_API_KEY=os.getenv("OPENAI_API_KEY")
 
 # Email Configuration
 SMTP_SERVER = os.getenv("SMTP_SERVER")
@@ -125,8 +124,8 @@ REQUIREMENTS:
 - Each JSON must be valid and complete on its own
 """
     
-    client = OpenAI(base_url = "https://api.openai.com/v1",
-                   api_key=OPENAI_API_KEY)
+    client = OpenAI(base_url = "https://api.fireworks.ai/inference/v1/completions",
+                   api_key=FIREWORKS_API_KEY)
     
     try:
         response = client.chat.completions.create(
@@ -256,9 +255,8 @@ async def fetch_blog_articles():
         print(f"Scraping blog: {url}")
         try:
             llm_strategy = LLMExtractionStrategy(
-                #provider="fireworks_ai/accounts/fireworks/models/deepseek-v3",
-                provider="openai/gpt-4o",
-                api_token=OPENAI_API_KEY,
+                provider="fireworks_ai/accounts/fireworks/models/deepseek-v3",
+                api_token=FIREWORKS_API_KEY,
                 schema=ArticleLink.model_json_schema(),
                 extraction_type="schema",
                 instruction=f"""Analyze the webpage and extract EXACTLY 2 of the most recent articles published on or after {cutoff_time} .
@@ -312,8 +310,8 @@ async def fetch_blog_articles():
                             # Check if article is recent enough
                             if pub_date >= cutoff_time:
                                 print(f"Found blog article: {article['url']}")
-                                article['url'] = article['url'].replace("</","")
-                                article['url'] = article['url'].replace(">","")
+                                # article['url'] = article['url'].replace("</","")
+                                # article['url'] = article['url'].replace(">","")
                         
                                 articles.append({
                                     "source": source,
@@ -345,9 +343,8 @@ async def scrape_article_content(url):
     print(f"Scraping content from: {url}")
     try:
         llm_strategy = LLMExtractionStrategy(
-            #provider="fireworks_ai/accounts/fireworks/models/deepseek-v3"
-            provider="openai/gpt-4o",
-            api_token=OPENAI_API_KEY,
+            provider="fireworks_ai/accounts/fireworks/models/deepseek-v3",
+            api_token=FIREWORKS_API_KEY,
             schema=ArticleContent.model_json_schema(),
             extraction_type="schema",
             instruction="""Extract ONLY the main article content from this webpage in clean, plain text format.
@@ -450,12 +447,11 @@ def summarize_article(title, link, content):
 		Format: "Summary: (specific innovation/finding and why it's significant)"
 		"""
    
-    client = OpenAI(#base_url = "https://api.fireworks.ai/inference/v1",
-    base_url="https://api.openai.com/v1",api_key=OPENAI_API_KEY)
+    client = OpenAI(base_url = "https://api.fireworks.ai/inference/v1",
+    api_key=FIREWORKS_API_KEY)
     try:
         response = client.chat.completions.create(
-            #model="accounts/fireworks/models/deepseek-v3",
-            model="gpt-4o",
+            model="accounts/fireworks/models/deepseek-v3",
             messages=[{"role": "system", "content": "You are an AI strategic advisor who synthesizes technical developments for decision-makers. \
                        Your role is to extract business-relevant insights from technical AI content while maintaining accuracy.\
                        Focus on strategic implications, competitive advantages, and potential market impact. \
