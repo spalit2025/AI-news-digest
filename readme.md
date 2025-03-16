@@ -24,7 +24,7 @@ This tool helps you stay informed about the latest developments in AI by:
 - Python 3.8+
 - Required libraries:
   - feedparser
-   - openai (or similar client)
+  - openai (or similar client)
   - crawl4ai (for web crawling)
   - pydantic
 
@@ -104,11 +104,9 @@ BLOG_URLS = {
 - **Email delivery issues**: Verify your SMTP settings and email credentials
 - **Date parsing errors**: The code includes robust date parsing, but some feeds may use unusual formats
 
-## License
-
-[Your license information here]
-
 ## Acknowledgments
 
-- Uses Fireworks.ai API for LLM processing
+- Uses OpenAI API / Fireworks.ai API for LLM processing
 - Uses crawl4ai for web crawling capabilities
+
+## Feel free to fork this repo, modify the sources and improve the functionality. Happy coding!
