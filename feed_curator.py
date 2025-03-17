@@ -310,8 +310,6 @@ async def fetch_blog_articles():
                             # Check if article is recent enough
                             if pub_date >= cutoff_time:
                                 print(f"Found blog article: {article['url']}")
-                                # article['url'] = article['url'].replace("</","")
-                                # article['url'] = article['url'].replace(">","")
                         
                                 articles.append({
                                     "source": source,
@@ -455,7 +453,8 @@ def summarize_article(title, link, content):
             messages=[{"role": "system", "content": "You are an AI strategic advisor who synthesizes technical developments for decision-makers. \
                        Your role is to extract business-relevant insights from technical AI content while maintaining accuracy.\
                        Focus on strategic implications, competitive advantages, and potential market impact. \
-                       Provide balanced analysis that connects technical capabilities to business value."},
+                       Provide balanced analysis that connects technical capabilities to business value.\
+                        Ground your answers in real world information and data."},
                       {"role": "user", "content": prompt}],
                       temperature=0.1,
                       max_tokens=150
@@ -468,10 +467,6 @@ def summarize_article(title, link, content):
             
         print(f"Failed to summarize (empty response): {link}")
         return "Summary not available: Empty response"
-
-    # except openai.APIError as e:
-    #     print(f"API Error summarizing {link}: {e}")
-    #     return "Summary not available: API Error"
         
     except Exception as e:
         print(f"Error summarizing {link}: {e}")
