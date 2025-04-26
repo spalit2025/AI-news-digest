@@ -18,6 +18,9 @@ from crawl4ai.extraction_strategy import LLMExtractionStrategy
 from pydantic import BaseModel, Field
 import io
 import time
+from dotenv import load_dotenv
+
+load_dotenv()
 
 RSS_FEEDS ={  
 "Wired AI":"https://www.wired.com/feed/tag/ai/latest/rss",
@@ -124,12 +127,12 @@ REQUIREMENTS:
 - Each JSON must be valid and complete on its own
 """
     
-    client = OpenAI(base_url = "https://api.fireworks.ai/inference/v1/completions",
+    client = OpenAI(base_url = "https://api.fireworks.ai/inference/v1",
                    api_key=FIREWORKS_API_KEY)
     
     try:
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="accounts/fireworks/models/deepseek-v3",
             messages=[
                 {"role": "system", "content": "You are an expert content curator who identifies, removes duplicate and content with erroneous summaries. You provide clear, structured output responses with valid JSON that includes all requested fields."},
                 {"role": "user", "content": prompt}
@@ -244,7 +247,7 @@ class ArticleLink(BaseModel):
     published_date: datetime = Field(description="The published date of the article")
 
 # New function for blog scraping
-async def fetch_blog_articles():
+async def   fetch_blog_articles():
     articles = []
     print("\nStarting blog extraction...")
 
@@ -267,9 +270,9 @@ async def fetch_blog_articles():
                 2. Sort by recency - newest articles first     
                 
                 REQUIRED EXTRACTION FORMAT:
-                - Each article must include FULL URL (not relative paths), exact title, and publication date
+                - Each article must include FULL URL (not relative paths), exact title, and published_date
                 - URLs must be complete, valid, and directly lead to the article (not section pages)
-                - Publication date must be in YYYY-MM-DD format
+                - P ublished_date must be in YYYY-MM-DD format
                 
                 IMPORTANT RULES:
                 - Return EXACTLY 2 articles if available (fewest if less than 2 exist)
@@ -301,6 +304,7 @@ async def fetch_blog_articles():
                 if result.success:
                     blog_data = json.loads(result.extracted_content)
                     print(f"Extracted {len(blog_data)} articles from {url}")
+                    #print(blog_data)
                     
                     # Add each extracted article to our list
                     for article in blog_data:
@@ -310,6 +314,8 @@ async def fetch_blog_articles():
                             # Check if article is recent enough
                             if pub_date >= cutoff_time:
                                 print(f"Found blog article: {article['url']}")
+                                article["url"].replace("</","")
+                                article["url"].replace(">","")
                         
                                 articles.append({
                                     "source": source,
