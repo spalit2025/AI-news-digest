@@ -69,7 +69,7 @@ async def filter_summaries_with_ai(articles_with_summaries):
             "id": idx,
             "title": article["title"],
             "source": article["source"],
-            "summary": article["summary"],
+            "description": article["description"],
             "link": article["link"]
         })
     
@@ -95,7 +95,7 @@ First JSON - ARTICLES TO KEEP:
       "id": 0,
       "title": "Example Title",
       "source": "Source Name",
-      "summary": "The complete summary text",
+      "description": "Short Description of the text",
       "link": "https://example.com/article",
     }}
   ]
@@ -132,7 +132,7 @@ REQUIREMENTS:
     
     try:
         response = client.chat.completions.create(
-            model="accounts/fireworks/models/deepseek-v3",
+            model="accounts/fireworks/models/llama4-scout-instruct-basic",
             messages=[
                 {"role": "system", "content": "You are an expert content curator who identifies, removes duplicate and content with erroneous summaries. You provide clear, structured output responses with valid JSON that includes all requested fields."},
                 {"role": "user", "content": prompt}
@@ -182,7 +182,7 @@ REQUIREMENTS:
                     result_articles.append({
                         "title": article.get("title", ""),
                         "source": article.get("source", ""),
-                        "summary": article.get("summary", ""),
+                        "description": article.get("description", ""),
                         "link": article.get("link", "")
                     })
                 
@@ -210,7 +210,7 @@ REQUIREMENTS:
 def fetch_rss_articles():
     articles = []
     current_time = datetime.now()
-    cutoff_time = current_time - timedelta(hours=168)
+    cutoff_time = current_time - timedelta(days=7)
 
     for source, url in RSS_FEEDS.items():
         print(f"Fetching RSS feed: {url}")
@@ -224,6 +224,10 @@ def fetch_rss_articles():
         for entry in feed.entries[:2]:  # Limit to the 2 most recent articles per source
             title = entry.title
             link = entry.link
+            # Get description from either 'description' or 'summary' field
+            description = entry.get('description', entry.get('summary', ''))
+            # Clean up description by removing HTML tags if present
+            description = description.replace('<p>', '').replace('</p>', '')
             if hasattr(entry, 'published_parsed'):
                 published_time = datetime.fromtimestamp(time.mktime(entry.published_parsed))
             else:
@@ -234,7 +238,7 @@ def fetch_rss_articles():
             # Check if the article is within the last 24 hours
             if published_time >= cutoff_time:
                 print(f"Found recent article: {link} (Published: {published_time})")
-                articles.append({"source": source, "title": title, "link": link})
+                articles.append({"source": source, "title": title, "link": link,"description":description})
             else:
                 print(f"Skipping older article: {link} (Published: {published_time})")
     
@@ -245,6 +249,7 @@ class ArticleLink(BaseModel):
     url: str = Field(description="The full URL of the article")
     title: str = Field(description="The title of the article")
     published_date: datetime = Field(description="The published date of the article")
+    description: str = Field(description="The short description of the article")
 
 # New function for blog scraping
 async def   fetch_blog_articles():
@@ -270,7 +275,7 @@ async def   fetch_blog_articles():
                 2. Sort by recency - newest articles first     
                 
                 REQUIRED EXTRACTION FORMAT:
-                - Each article must include FULL URL (not relative paths), exact title, and published_date
+                - Each article must include FULL URL (not relative paths), exact title, and published_date and short_description of the article
                 - URLs must be complete, valid, and directly lead to the article (not section pages)
                 - P ublished_date must be in YYYY-MM-DD format
                 
@@ -304,7 +309,7 @@ async def   fetch_blog_articles():
                 if result.success:
                     blog_data = json.loads(result.extracted_content)
                     print(f"Extracted {len(blog_data)} articles from {url}")
-                    #print(blog_data)
+                    print(blog_data)
                     
                     # Add each extracted article to our list
                     for article in blog_data:
@@ -320,7 +325,8 @@ async def   fetch_blog_articles():
                                 articles.append({
                                     "source": source,
                                     "title": article["title"],
-                                    "link": article["url"]
+                                    "link": article["url"],
+                                    "description": article["description"]
                                 })
                             else:
                                 print(f"Skipping older article: {article['title']} (Published: {pub_date})")
@@ -455,7 +461,7 @@ def summarize_article(title, link, content):
     api_key=FIREWORKS_API_KEY)
     try:
         response = client.chat.completions.create(
-            model="accounts/fireworks/models/deepseek-v3",
+            model="accounts/fireworks/models/llama4-scout-instruct-basic",
             messages=[{"role": "system", "content": "You are an AI strategic advisor who synthesizes technical developments for decision-makers. \
                        Your role is to extract business-relevant insights from technical AI content while maintaining accuracy.\
                        Focus on strategic implications, competitive advantages, and potential market impact. \
@@ -483,8 +489,12 @@ async def create_email_content(articles):
     failed_urls = []
     articles_with_summaries = []
 
+    filtered_articles = await filter_summaries_with_ai(articles)
+
+    print(f"\nKept {len(filtered_articles)} out of {len(articles)} articles after LLM-based filtering")
+
     # First, extract content and generate summaries
-    for article in articles:
+    for article in filtered_articles:
         # Scrape the article content
         content = await scrape_article_content(article["link"])
 
@@ -504,12 +514,12 @@ async def create_email_content(articles):
             articles_with_summaries.append(article_with_summary)
 
     # Filter summaries to remove duplicates and erroneous ones
-    filtered_articles = await filter_summaries_with_ai(articles_with_summaries)
+    #filtered_articles = await filter_summaries_with_ai(articles_with_summaries)
     
-    print(f"\nKept {len(filtered_articles)} out of {len(articles_with_summaries)} articles after LLM-based filtering")
+    #print(f"\nKept {len(filtered_articles)} out of {len(articles_with_summaries)} articles after LLM-based filtering")
 
     # Create the email with filtered articles
-    for article in filtered_articles:
+    for article in articles_with_summaries:
         email_body += f"<p><strong>{article['title']}</strong> ({article['source']})<br>{article['summary']}<br><a href='{article['link']}'>Read more</a></p>"
         
     if failed_urls:
@@ -517,7 +527,7 @@ async def create_email_content(articles):
         for url in failed_urls:
             print(f"- {url}")
             
-    return email_body,filtered_articles
+    return email_body,articles_with_summaries
 
 def create_articles_csv(articles):
     """
@@ -577,9 +587,11 @@ def send_email(content,filtered_articles):
 async def run_pipeline():
     # Run RSS feed extraction
     rss_articles = fetch_rss_articles()
+    print("rss are ", rss_articles)
 
     # Run blog post extraction
     blog_articles = await fetch_blog_articles()
+    print("blogs are ", blog_articles)
 
     # Combine the articles
     all_articles = rss_articles + blog_articles
