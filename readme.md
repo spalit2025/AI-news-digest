@@ -7,9 +7,9 @@ An automated pipeline that collects, filters, and summarizes AI-related news and
 This tool helps you stay informed about the latest developments in AI by:
 1. Collecting articles from RSS feeds and blog sources
 2. Filtering for only the most recent articles (past week)
-3. Extracting and summarizing content
-4. Removing duplicates and low-quality articles
-5. Delivering a digest via email with a CSV attachment
+3. Removing duplicates and low-quality articles
+4. Extracting and summarizing content
+6. Delivering a digest via email with a CSV attachment
 
 ## Features
 
