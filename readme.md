@@ -1,4 +1,4 @@
-# AI News RSS Aggregator - Optimized Version
+# AI News Digest - RSS-powered aggregator with PDF reports and 90% cost savings
 
 An automated, cost-efficient pipeline that collects, filters, and summarizes AI-related news from RSS feeds, generating professional reports with 90-95% cost savings.
 
