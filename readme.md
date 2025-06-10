@@ -14,11 +14,11 @@ This streamlined tool helps you stay informed about the latest AI developments b
 ## ✨ Key Features
 
 - **🎯 RSS-Only Collection**: Fast, free, and reliable article gathering
-- **💰 Cost Optimized**: 90-95% reduction in API costs vs original version
+- **💰 Cost Optimized**: 90-95% reduction in API costs by not using blog scraping
 - **🧠 Smart Extraction**: Uses RSS descriptions when sufficient, scrapes only when needed
 - **⚡ Batch Processing**: Summarizes multiple articles in single API calls
 - **💾 Intelligent Caching**: Avoids re-processing articles and summaries
-- **📊 Dual Report Formats**: Professional PDF + machine-readable CSV
+- **📊 Dual Report Formats**:  PDF + machine-readable CSV
 - **🔄 State Tracking**: Prevents duplicate article processing across runs
 
 ## 📋 Requirements
