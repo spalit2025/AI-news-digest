@@ -1,2 +1,24 @@
+# Environment and virtual environment
 venv/
 .env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# IDE
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+
+# Cache and temporary files
+article_cache.json
+sent_articles.json
+
+# Reports - Generated files, not tracked
+reports/
