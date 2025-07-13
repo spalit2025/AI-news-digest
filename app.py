@@ -7,15 +7,88 @@ from datetime import datetime
 from pathlib import Path
 import sys
 import traceback
+from dataclasses import dataclass
+from typing import Optional
 
 # Enhanced imports
 from rss_feeds import RSSFeedValidator, ENHANCED_RSS_FEEDS, FEED_CATEGORIES
 from summarization import EnhancedSummarizer
 from ui import EnhancedReportGenerator
 
+# Thread-safe report status management
+@dataclass
+class ReportStatus:
+    running: bool = False
+    progress: str = ""
+    error: Optional[str] = None
+    last_report: Optional[str] = None
+    start_time: Optional[datetime] = None
+    articles_processed: int = 0
+    enhanced_mode: bool = True
+    
+class ReportManager:
+    def __init__(self):
+        self._status = ReportStatus()
+        self._lock = threading.Lock()
+    
+    def get_status(self) -> dict:
+        with self._lock:
+            return {
+                'running': self._status.running,
+                'progress': self._status.progress,
+                'error': self._status.error,
+                'last_report': self._status.last_report,
+                'duration': (datetime.now() - self._status.start_time).total_seconds() if self._status.start_time else 0,
+                'articles_processed': self._status.articles_processed,
+                'enhanced_mode': self._status.enhanced_mode
+            }
+    
+    def update_progress(self, progress: str, articles_processed: int = 0):
+        with self._lock:
+            self._status.progress = progress
+            if articles_processed > 0:
+                self._status.articles_processed = articles_processed
+    
+    def update_articles_processed(self, count: int):
+        with self._lock:
+            self._status.articles_processed = count
+    
+    def start_generation(self):
+        with self._lock:
+            self._status.running = True
+            self._status.progress = 'Starting report generation...'
+            self._status.error = None
+            self._status.last_report = None
+            self._status.start_time = datetime.now()
+            self._status.articles_processed = 0
+    
+    def finish_generation(self, report_filename: Optional[str] = None, error: Optional[str] = None):
+        with self._lock:
+            self._status.running = False
+            if error:
+                self._status.error = error
+                self._status.progress = f'Error: {error}'
+            elif report_filename:
+                self._status.last_report = report_filename
+                self._status.progress = 'Report generation completed successfully!'
+            else:
+                self._status.progress = 'No new articles found today.'
+    
+    def is_running(self) -> bool:
+        with self._lock:
+            return self._status.running
+    
+    def set_enhanced_mode(self, enhanced: bool):
+        with self._lock:
+            self._status.enhanced_mode = enhanced
+
 # Enhanced mode is now always enabled
 ENHANCED_MODE = True
 print("✅ Enhanced modules loaded successfully")
+
+# Initialize report manager
+report_manager = ReportManager()
+report_manager.set_enhanced_mode(ENHANCED_MODE)
 
 # Create reports directory
 try:
@@ -71,14 +144,7 @@ else:
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'  # Change this to a secure secret key
 
-# Global variable to track report generation status
-report_status = {
-    'running': False,
-    'progress': '',
-    'error': None,
-    'last_report': None,
-    'enhanced_mode': ENHANCED_MODE
-}
+# Thread-safe report status management implemented above
 
 def get_available_sources():
     """Get available RSS sources organized by category"""
@@ -91,9 +157,9 @@ def get_available_sources():
         categorized_sources = {}
         for category, source_names in FEED_CATEGORIES.items():
             categorized_sources[category] = {}
-            for source_name in source_names:
-                if source_name in ENHANCED_RSS_FEEDS:
-                    categorized_sources[category][source_name] = ENHANCED_RSS_FEEDS[source_name]
+            for source_name, url in ENHANCED_RSS_FEEDS.items():
+                if source_name in source_names:
+                    categorized_sources[category][source_name] = url
         
         # Add uncategorized sources
         categorized_sources["other"] = {}
@@ -143,7 +209,7 @@ def run_enhanced_pipeline(selected_sources=None):
         report_generator = EnhancedReportGenerator(REPORTS_DIR)
         
         # Step 1: Get RSS feeds based on selection
-        report_status['progress'] = 'Setting up RSS feeds...'
+        report_manager.update_progress('Setting up RSS feeds...')
         
         if selected_sources:
             # Use selected sources
@@ -166,54 +232,57 @@ def run_enhanced_pipeline(selected_sources=None):
         optimized_ai_news.RSS_FEEDS = selected_feeds
         
         # Step 2: Fetch articles using selected feeds
-        report_status['progress'] = f'Fetching articles from {len(selected_feeds)} selected sources...'
+        report_manager.update_progress(f'Fetching articles from {len(selected_feeds)} selected sources...')
         articles = fetch_rss_articles()
         
         # Restore original feeds
         optimized_ai_news.RSS_FEEDS = original_feeds
         
         if not articles:
-            report_status['progress'] = 'No new articles found from selected sources.'
+            report_manager.update_progress('No new articles found from selected sources.')
             return None
         
         # Step 3: Filter new articles
-        report_status['progress'] = 'Filtering for new articles...'
+        report_manager.update_progress('Filtering for new articles...')
         new_articles = state_tracker.filter_new_articles(articles)
         
         if not new_articles:
-            report_status['progress'] = 'No new articles to process.'
+            report_manager.update_progress('No new articles to process.')
             return None
         
         # Step 4: Extract content
-        report_status['progress'] = f'Extracting content from {len(new_articles)} articles...'
+        report_manager.update_progress(f'Extracting content from {len(new_articles)} articles...')
         articles_with_content = []
         
-        for article in new_articles:
+        for i, article in enumerate(new_articles):
             content = smart_content_extraction(article)
             if content:
                 articles_with_content.append({
                     **article,
                     'content': content[:2000]  # Limit content length
                 })
+            # Update progress for content extraction
+            report_manager.update_progress(f'Extracting content: {i+1}/{len(new_articles)} articles processed...')
         
         if not articles_with_content:
-            report_status['progress'] = 'No articles with extractable content found.'
+            report_manager.update_progress('No articles with extractable content found.')
             return None
         
         # Step 5: Enhanced summarization with impact scoring
-        report_status['progress'] = f'Analyzing {len(articles_with_content)} articles with enhanced AI...'
+        report_manager.update_progress(f'Analyzing {len(articles_with_content)} articles with enhanced AI...')
+        report_manager.update_articles_processed(len(articles_with_content))
         analyzed_articles = summarizer.batch_analyze_articles(articles_with_content)
         
         if not analyzed_articles:
-            report_status['progress'] = 'No articles passed enhanced analysis.'
+            report_manager.update_progress('No articles passed enhanced analysis.')
             return None
         
         # Step 6: Generate trend analysis
-        report_status['progress'] = 'Generating trend analysis...'
+        report_manager.update_progress('Generating trend analysis...')
         trend_analysis = summarizer.generate_trend_analysis(analyzed_articles)
         
         # Step 7: Generate enhanced report
-        report_status['progress'] = 'Generating enhanced report...'
+        report_manager.update_progress('Generating enhanced report...')
         result = report_generator.generate_enhanced_report(analyzed_articles, trend_analysis)
         
         # Step 8: Mark articles as sent
@@ -230,9 +299,29 @@ def run_enhanced_pipeline(selected_sources=None):
 def index():
     """Main page"""
     available_sources = get_available_sources()
+    status = report_manager.get_status()
+    
+    # Get existing reports from the reports directory
+    reports = []
+    try:
+        reports_dir = Path(REPORTS_DIR)
+        if reports_dir.exists():
+            for report_file in reports_dir.glob('*.pdf'):
+                reports.append({
+                    'filename': report_file.name,
+                    'created': datetime.fromtimestamp(report_file.stat().st_mtime).strftime('%Y-%m-%d %H:%M'),
+                    'size': f"{report_file.stat().st_size / 1024:.1f} KB"
+                })
+            # Sort by creation time (newest first)
+            reports.sort(key=lambda x: x['created'], reverse=True)
+    except Exception as e:
+        print(f"Error getting reports: {e}")
+    
     return render_template('index.html', 
                          available_sources=available_sources,
-                         enhanced_mode=ENHANCED_MODE)
+                         enhanced_mode=ENHANCED_MODE,
+                         status=status,
+                         reports=reports)
 
 @app.route('/api/sources')
 def get_sources():
@@ -242,9 +331,9 @@ def get_sources():
 @app.route('/generate_report', methods=['POST'])
 def generate_report():
     """Start report generation in background"""
-    global report_status
+    global report_manager
     
-    if report_status['running']:
+    if report_manager.is_running():
         flash('Report generation is already in progress!', 'warning')
         return redirect(url_for('index'))
     
@@ -265,7 +354,7 @@ def generate_report():
 @app.route('/status')
 def get_status():
     """Get current report generation status (for AJAX polling)"""
-    return jsonify(report_status)
+    return jsonify(report_manager.get_status())
 
 @app.route('/download/<filename>')
 def download_report(filename):
@@ -298,13 +387,10 @@ def delete_report(filename):
 
 def run_report_generation(selected_sources=None):
     """Background function to run report generation"""
-    global report_status
+    global report_manager
     
     try:
-        report_status['running'] = True
-        report_status['progress'] = 'Starting report generation...'
-        report_status['error'] = None
-        report_status['last_report'] = None
+        report_manager.start_generation()
         
         # Check for API key first
         fireworks_key = os.getenv("FIREWORKS_API_KEY")
@@ -319,7 +405,7 @@ def run_report_generation(selected_sources=None):
             def write(self, text):
                 if text.strip():
                     self.messages.append(text.strip())
-                    report_status['progress'] = text.strip()
+                    report_manager.update_progress(text.strip())
                 # Also write to original stdout
                 sys.__stdout__.write(text)
             
@@ -344,18 +430,18 @@ def run_report_generation(selected_sources=None):
         sys.stdout = old_stdout
         
         if result and result.get('pdf_report'):
-            report_status['progress'] = 'Report generation completed successfully!'
-            report_status['last_report'] = Path(result['pdf_report']).name
+            report_manager.finish_generation(report_filename=Path(result['pdf_report']).name)
         else:
-            report_status['progress'] = 'No new articles found today.'
+            report_manager.finish_generation()
             
     except Exception as e:
-        report_status['error'] = str(e)
-        report_status['progress'] = f'Error: {str(e)}'
+        report_manager.finish_generation(error=str(e))
         print(f"Error in report generation: {e}")
         traceback.print_exc()
     finally:
-        report_status['running'] = False
+        # Ensure generation is always marked as finished
+        if report_manager.is_running():
+            report_manager.finish_generation()
 
 if __name__ == '__main__':
     # Ensure reports directory exists

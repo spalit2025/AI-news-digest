@@ -355,6 +355,22 @@ header h1 {
     font-weight: 500;
 }
 
+.progress-details {
+    display: flex;
+    gap: 16px;
+    margin-top: 8px;
+    font-size: 0.85em;
+    color: var(--text-secondary);
+}
+
+.progress-details .duration,
+.progress-details .articles-count {
+    background: var(--background-secondary);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
 .error-message {
     background: #f8d7da;
     color: #721c24;

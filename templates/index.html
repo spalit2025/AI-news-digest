@@ -116,10 +116,18 @@
                         <div class="progress-bar">
                             <div class="progress-fill {% if status.running %}animate{% endif %}"></div>
                         </div>
-                        <div class="progress-text">
-                            <i class="fas fa-info-circle"></i>
-                            <span id="progress-message">{{ status.progress }}</span>
-                        </div>
+                                            <div class="progress-text">
+                        <i class="fas fa-info-circle"></i>
+                        <span id="progress-message">{{ status.progress }}</span>
+                        {% if status.running and status.duration > 0 %}
+                            <div class="progress-details">
+                                <span class="duration">Duration: {{ "%.0f"|format(status.duration) }}s</span>
+                                {% if status.articles_processed > 0 %}
+                                    <span class="articles-count">Articles: {{ status.articles_processed }}</span>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
                         {% if status.error %}
                             <div class="error-message">
                                 <i class="fas fa-exclamation-triangle"></i>
