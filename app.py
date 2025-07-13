@@ -8,28 +8,65 @@ from pathlib import Path
 import sys
 import traceback
 
-# Import the enhanced news aggregation functions
-try:
-    from enhanced_rss_feeds import RSSFeedValidator
-    from enhanced_summarization import EnhancedSummarizer
-    from enhanced_ui import EnhancedReportGenerator
-    ENHANCED_MODE = True
-    print("✅ Enhanced modules loaded successfully")
-except ImportError as e:
-    print(f"⚠️ Enhanced modules not available: {e}")
-    ENHANCED_MODE = False
+# Enhanced imports
+from rss_feeds import RSSFeedValidator, ENHANCED_RSS_FEEDS, FEED_CATEGORIES
+from summarization import EnhancedSummarizer
+from ui import EnhancedReportGenerator
+
+# Enhanced mode is now always enabled
+ENHANCED_MODE = True
+print("✅ Enhanced modules loaded successfully")
 
 # Create reports directory
-from pathlib import Path
-REPORTS_DIR = Path("reports")
-REPORTS_DIR.mkdir(exist_ok=True)
+try:
+    from legacy.optimized_ai_news import REPORTS_DIR
+    if not os.path.exists(REPORTS_DIR):
+        os.makedirs(REPORTS_DIR)
+except ImportError:
+    REPORTS_DIR = "reports"
+    if not os.path.exists(REPORTS_DIR):
+        os.makedirs(REPORTS_DIR)
+
+# Check for API key
+if not os.environ.get('FIREWORKS_API_KEY'):
+    print("⚠️ FIREWORKS_API_KEY not set - some features may not work")
+    print("   Please set it in your environment or .env file")
+else:
+    print("✅ FIREWORKS_API_KEY found in environment")
+
+# Check enhanced mode
+if ENHANCED_MODE:
+    print("🚀 Enhanced mode enabled - will use improved RSS feeds and AI analysis")
+else:
+    print("📰 Basic mode - using standard RSS feeds")
 
 # Import pipeline functions based on mode
-if not ENHANCED_MODE:
-    from legacy.optimized_ai_news import run_pipeline_optimized
+if ENHANCED_MODE:
+    print("🔧 Checking environment setup...")
+    
+    # Check for API key
+    if not os.environ.get('FIREWORKS_API_KEY'):
+        print("⚠️ FIREWORKS_API_KEY not set - some features may not work")
+        print("   Please set it in your environment or .env file")
+    else:
+        print("✅ FIREWORKS_API_KEY found in environment")
+    
+    try:
+        from legacy.optimized_ai_news import fetch_rss_articles, smart_content_extraction, ArticleCache, StateTracker
+        from rss_feeds import get_prioritized_feeds, validate_and_fix_feeds
+        from summarization import EnhancedSummarizer
+        from ui import EnhancedReportGenerator
+        print("✅ Enhanced modules loaded successfully")
+    except ImportError as e:
+        print(f"❌ Failed to import enhanced modules: {e}")
+        ENHANCED_MODE = False
 else:
-    # Enhanced mode uses the enhanced modules imported above
-    pass
+    try:
+        from legacy.optimized_ai_news import run_pipeline_optimized
+        print("✅ Legacy pipeline loaded")
+    except ImportError as e:
+        print(f"❌ Failed to import legacy pipeline: {e}")
+        sys.exit(1)
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'  # Change this to a secure secret key
@@ -43,12 +80,54 @@ report_status = {
     'enhanced_mode': ENHANCED_MODE
 }
 
-def run_enhanced_pipeline():
+def get_available_sources():
+    """Get available RSS sources organized by category"""
+    try:
+        from rss_feeds import get_prioritized_feeds, validate_and_fix_feeds
+        from legacy.optimized_ai_news import fetch_rss_articles, smart_content_extraction, ArticleCache, StateTracker
+        import json
+        
+        # Enhanced mode - organize sources by category
+        categorized_sources = {}
+        for category, source_names in FEED_CATEGORIES.items():
+            categorized_sources[category] = {}
+            for source_name in source_names:
+                if source_name in ENHANCED_RSS_FEEDS:
+                    categorized_sources[category][source_name] = ENHANCED_RSS_FEEDS[source_name]
+        
+        # Add uncategorized sources
+        categorized_sources["other"] = {}
+        for source_name, url in ENHANCED_RSS_FEEDS.items():
+            # Check if source is not in any category
+            in_category = False
+            for category_sources in FEED_CATEGORIES.values():
+                if source_name in category_sources:
+                    in_category = True
+                    break
+            if not in_category:
+                categorized_sources["other"][source_name] = url
+        
+        return categorized_sources
+    except ImportError as e:
+        print(f"⚠️ Enhanced modules not available: {e}")
+        return {
+            "basic": {
+                "NVIDIA AI Blog": "https://blogs.nvidia.com/blog/category/ai/feed/",
+                "Hugging Face": "https://huggingface.co/blog/feed.xml",
+                "Google AI": "https://ai.googleblog.com/feeds/posts/default",
+                "OpenAI": "https://openai.com/news/rss.xml",
+                "Meta AI": "https://about.fb.com/news/category/ai/feed/",
+                "Anthropic": "https://www.anthropic.com/news/rss.xml",
+                "Uber AI": "https://www.uber.com/blog/engineering/ai/feed/"
+            }
+        }
+
+def run_enhanced_pipeline(selected_sources=None):
     """Run the enhanced pipeline with better RSS feeds and summarization"""
     try:
         # Import required modules
-        from enhanced_rss_feeds import get_prioritized_feeds, validate_and_fix_feeds
-        from optimized_ai_news import fetch_rss_articles, smart_content_extraction, ArticleCache, StateTracker
+        from rss_feeds import get_prioritized_feeds, validate_and_fix_feeds
+        from legacy.optimized_ai_news import fetch_rss_articles, smart_content_extraction, ArticleCache, StateTracker
         import json
         
         # Initialize components
@@ -63,24 +142,38 @@ def run_enhanced_pipeline():
         summarizer = EnhancedSummarizer(fireworks_key)
         report_generator = EnhancedReportGenerator(REPORTS_DIR)
         
-        # Step 1: Get enhanced RSS feeds
-        report_status['progress'] = 'Setting up enhanced RSS feeds...'
-        prioritized_feeds = get_prioritized_feeds(15)  # Get top 15 feeds
+        # Step 1: Get RSS feeds based on selection
+        report_status['progress'] = 'Setting up RSS feeds...'
+        
+        if selected_sources:
+            # Use selected sources
+            selected_feeds = {}
+            all_sources = get_available_sources()
+            for category, sources in all_sources.items():
+                for source_name, url in sources.items():
+                    if source_name in selected_sources:
+                        selected_feeds[source_name] = url
+            
+            if not selected_feeds:
+                raise Exception("No valid sources selected")
+        else:
+            # Use default enhanced feeds
+            selected_feeds = get_prioritized_feeds(15)
         
         # Temporarily replace the RSS feeds in the optimized script
-        import optimized_ai_news
+        import legacy.optimized_ai_news as optimized_ai_news
         original_feeds = optimized_ai_news.RSS_FEEDS
-        optimized_ai_news.RSS_FEEDS = prioritized_feeds
+        optimized_ai_news.RSS_FEEDS = selected_feeds
         
-        # Step 2: Fetch articles using enhanced feeds
-        report_status['progress'] = 'Fetching articles from enhanced RSS feeds...'
+        # Step 2: Fetch articles using selected feeds
+        report_status['progress'] = f'Fetching articles from {len(selected_feeds)} selected sources...'
         articles = fetch_rss_articles()
         
         # Restore original feeds
         optimized_ai_news.RSS_FEEDS = original_feeds
         
         if not articles:
-            report_status['progress'] = 'No new articles found from RSS feeds.'
+            report_status['progress'] = 'No new articles found from selected sources.'
             return None
         
         # Step 3: Filter new articles
@@ -135,21 +228,16 @@ def run_enhanced_pipeline():
 
 @app.route('/')
 def index():
-    """Main page with report generation interface"""
-    # Get list of existing reports
-    reports = []
-    if REPORTS_DIR.exists():
-        for file_path in REPORTS_DIR.glob("*.pdf"):
-            reports.append({
-                'filename': file_path.name,
-                'created': datetime.fromtimestamp(file_path.stat().st_mtime).strftime('%Y-%m-%d %H:%M:%S'),
-                'size': f"{file_path.stat().st_size / 1024:.1f} KB"
-            })
-    
-    # Sort reports by creation time (newest first)
-    reports.sort(key=lambda x: x['created'], reverse=True)
-    
-    return render_template('index.html', reports=reports, status=report_status)
+    """Main page"""
+    available_sources = get_available_sources()
+    return render_template('index.html', 
+                         available_sources=available_sources,
+                         enhanced_mode=ENHANCED_MODE)
+
+@app.route('/api/sources')
+def get_sources():
+    """API endpoint to get available sources"""
+    return jsonify(get_available_sources())
 
 @app.route('/generate_report', methods=['POST'])
 def generate_report():
@@ -160,11 +248,18 @@ def generate_report():
         flash('Report generation is already in progress!', 'warning')
         return redirect(url_for('index'))
     
+    # Get selected sources from form
+    selected_sources = request.form.getlist('sources')
+    
     # Start report generation in background thread
-    thread = threading.Thread(target=run_report_generation)
+    thread = threading.Thread(target=run_report_generation, args=(selected_sources,))
     thread.start()
     
-    flash('Report generation started! Please wait...', 'info')
+    if selected_sources:
+        flash(f'Report generation started with {len(selected_sources)} selected sources!', 'info')
+    else:
+        flash('Report generation started with default sources!', 'info')
+    
     return redirect(url_for('index'))
 
 @app.route('/status')
@@ -201,7 +296,7 @@ def delete_report(filename):
     
     return redirect(url_for('index'))
 
-def run_report_generation():
+def run_report_generation(selected_sources=None):
     """Background function to run report generation"""
     global report_status
     
@@ -239,10 +334,10 @@ def run_report_generation():
         # Run the appropriate pipeline
         if ENHANCED_MODE:
             print("🚀 Running ENHANCED AI news pipeline...")
-            result = run_enhanced_pipeline()
+            result = run_enhanced_pipeline(selected_sources)
         else:
             print("🚀 Running basic optimized pipeline...")
-            from optimized_ai_news import run_pipeline_optimized
+            from legacy.optimized_ai_news import run_pipeline_optimized
             result = run_pipeline_optimized()
         
         # Restore stdout

@@ -28,20 +28,86 @@
             {% endif %}
         {% endwith %}
 
-        <!-- Report Generation Section -->
-        <section class="report-generation">
+        <!-- Source Selection Section -->
+        <section class="source-selection">
             <div class="card">
-                <h2><i class="fas fa-cog"></i> Generate New Report</h2>
-                <p>Generate a comprehensive AI news digest from RSS feeds of major AI companies and research organizations.</p>
+                <h2><i class="fas fa-rss"></i> Select News Sources</h2>
+                <p>Choose which sources to include in your report {% if enhanced_mode %}({{ available_sources|length }} categories available){% endif %}</p>
                 
-                <form method="POST" action="{{ url_for('generate_report') }}" class="generate-form">
-                    <button type="submit" class="btn btn-primary" {% if status.running %}disabled{% endif %}>
-                        {% if status.running %}
-                            <i class="fas fa-spinner fa-spin"></i> Generating Report...
-                        {% else %}
-                            <i class="fas fa-play"></i> Generate Report
-                        {% endif %}
-                    </button>
+                <form method="POST" action="{{ url_for('generate_report') }}" class="generate-form" id="sourceForm">
+                    <div class="source-controls">
+                        <div class="control-buttons">
+                            <button type="button" id="selectAll" class="btn btn-secondary btn-sm">
+                                <i class="fas fa-check-double"></i> Select All
+                            </button>
+                            <button type="button" id="selectNone" class="btn btn-secondary btn-sm">
+                                <i class="fas fa-times"></i> Select None
+                            </button>
+                            <button type="button" id="selectDefault" class="btn btn-secondary btn-sm">
+                                <i class="fas fa-star"></i> Select Default
+                            </button>
+                        </div>
+                        
+                        <div class="selected-count">
+                            <span id="selectedCount">0</span> sources selected
+                        </div>
+                    </div>
+
+                    <div class="sources-grid">
+                        {% for category, sources in available_sources.items() %}
+                            <div class="source-category">
+                                <h3 class="category-title">
+                                    <i class="fas fa-folder-open"></i>
+                                    {{ category.title() }}
+                                    {% if category == 'research' %}
+                                        <i class="fas fa-microscope"></i>
+                                    {% elif category == 'industry' %}
+                                        <i class="fas fa-industry"></i>
+                                    {% elif category == 'news' %}
+                                        <i class="fas fa-newspaper"></i>
+                                    {% elif category == 'technical' %}
+                                        <i class="fas fa-code"></i>
+                                    {% elif category == 'business' %}
+                                        <i class="fas fa-chart-line"></i>
+                                    {% else %}
+                                        <i class="fas fa-rss"></i>
+                                    {% endif %}
+                                </h3>
+                                
+                                <div class="sources-in-category">
+                                    {% for source_name, url in sources.items() %}
+                                        <div class="source-item">
+                                            <label class="source-checkbox">
+                                                <input type="checkbox" name="sources" value="{{ source_name }}" 
+                                                       class="source-input" 
+                                                       {% if source_name in ['OpenAI', 'Hugging Face', 'DeepMind', 'Anthropic', 'VentureBeat AI'] %}checked{% endif %}>
+                                                <span class="checkmark"></span>
+                                                <div class="source-info">
+                                                    <span class="source-name">{{ source_name }}</span>
+                                                    <span class="source-url">{{ url | truncate(50) }}</span>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="generate-section">
+                        <button type="submit" class="btn btn-primary" {% if status.running %}disabled{% endif %}>
+                            {% if status.running %}
+                                <i class="fas fa-spinner fa-spin"></i> Generating Report...
+                            {% else %}
+                                <i class="fas fa-play"></i> Generate Report
+                            {% endif %}
+                        </button>
+                        
+                        <div class="generation-note">
+                            <i class="fas fa-info-circle"></i>
+                            Select at least one source to generate a report
+                        </div>
+                    </div>
                 </form>
 
                 <!-- Progress Display -->
@@ -62,43 +128,6 @@
                         {% endif %}
                     </div>
                 {% endif %}
-            </div>
-        </section>
-
-        <!-- Sources Information -->
-        <section class="sources-info">
-            <div class="card">
-                <h2><i class="fas fa-rss"></i> News Sources</h2>
-                <div class="sources-grid">
-                    <div class="source-item">
-                        <i class="fab fa-nvidia"></i>
-                        <span>NVIDIA AI Blog</span>
-                    </div>
-                    <div class="source-item">
-                        <i class="fas fa-robot"></i>
-                        <span>Hugging Face</span>
-                    </div>
-                    <div class="source-item">
-                        <i class="fab fa-google"></i>
-                        <span>Google AI</span>
-                    </div>
-                    <div class="source-item">
-                        <i class="fas fa-brain"></i>
-                        <span>OpenAI</span>
-                    </div>
-                    <div class="source-item">
-                        <i class="fab fa-facebook"></i>
-                        <span>Meta AI</span>
-                    </div>
-                    <div class="source-item">
-                        <i class="fas fa-microscope"></i>
-                        <span>Anthropic</span>
-                    </div>
-                    <div class="source-item">
-                        <i class="fab fa-uber"></i>
-                        <span>Uber AI</span>
-                    </div>
-                </div>
             </div>
         </section>
 
@@ -149,7 +178,7 @@
                 {% else %}
                     <div class="empty-state">
                         <i class="fas fa-file-pdf"></i>
-                        <p>No reports generated yet. Click "Generate Report" to create your first AI news digest!</p>
+                        <p>No reports generated yet. Select your sources and click "Generate Report" to create your first AI news digest!</p>
                     </div>
                 {% endif %}
             </div>
@@ -158,6 +187,9 @@
         <!-- Footer -->
         <footer>
             <p>&copy; 2024 AI News Digest Generator | Powered by RSS feeds and AI summarization</p>
+            {% if enhanced_mode %}
+                <p><i class="fas fa-rocket"></i> Enhanced mode active - Advanced RSS feeds and AI analysis</p>
+            {% endif %}
         </footer>
     </div>
 
