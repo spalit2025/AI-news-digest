@@ -1,85 +1,134 @@
-# AI News Digest - RSS-powered aggregator with 90% cost savings
+# AI News Digest Web Application
 
-An automated tool that collects AI news from RSS feeds and generates daily reports in PDF and CSV formats.
+A comprehensive AI-powered news aggregation and analysis tool with a modern web interface. This application collects AI/ML news from multiple sources, provides intelligent summaries with impact scoring, and generates professional reports.
 
-## What it does
+## 🚀 Features
 
-- Fetches articles from 11 AI industry RSS feeds
-- Extracts and summarizes content using AI
-- Filters out duplicates and low-quality articles
-- Generates professional reports saved locally
-- Tracks processed articles to avoid duplicates
+- **Enhanced RSS Feeds**: 19+ curated AI/ML sources with health monitoring
+- **AI-Powered Analysis**: Multi-dimensional impact scoring, categorization, and market analysis
+- **Modern Web Interface**: Real-time progress tracking and responsive design
+- **Professional Reports**: PDF generation with executive summaries and trend analysis
+- **Intelligent Caching**: Efficient processing with duplicate detection
+- **Rate Limiting Protection**: Robust API call management with retry logic
 
-## Features
+## 📋 Requirements
 
-- **🎯 RSS-Only Collection**: Fast, free, and reliable article gathering
-- **💰 Cost Optimized**: 90-95% reduction in API costs by not using blog scraping
-- **🧠 Smart Extraction**: Uses RSS descriptions when sufficient, scrapes only when needed
-- **⚡ Batch Processing**: Summarizes multiple articles in single API calls
-- **💾 Intelligent Caching**: Avoids re-processing articles and summaries
-- **📊 Dual Report Formats**: PDF + machine-readable CSV
-- **🔄 State Tracking**: Prevents duplicate article processing across runs
+- Python 3.8+
+- Fireworks AI API key (for AI analysis)
+- Dependencies listed in `requirements.txt`
 
-## Setup
+## 🛠️ Setup Instructions
 
-1. Clone the repository
-2. Install dependencies:
+### 1. Clone the Repository
 ```bash
-pip install feedparser openai python-dotenv reportlab newspaper3k beautifulsoup4 requests
+git clone <repository-url>
+cd AI-news-digest
 ```
 
-3. Create `.env` file:
-```env
-FIREWORKS_API_KEY=your_fireworks_api_key
-```
-
-4. Run the script:
+### 2. Install Dependencies
 ```bash
-python optimized_ai_news.py
+pip install -r requirements.txt
 ```
 
-## Configuration
+### 3. Environment Configuration
+Create a `.env` file based on `.env.example`:
+```bash
+cp .env.example .env
+```
 
-The script uses these RSS sources by default:
-- Nvidia, TechCrunch AI, MIT Tech Review
-- ArXiv AI, Hugging Face, Google AI  
-- OpenAI, Meta AI, Anthropic
-- The Verge AI, Ars Technica AI
+Edit `.env` and add your API key:
+```
+FIREWORKS_API_KEY=your_fireworks_api_key_here
+```
 
-To add sources, edit the `RSS_FEEDS` dictionary in the script.
+### 4. Run the Application
+```bash
+python app.py
+```
 
-## Output
 
-Reports are saved in the `reports/` folder:
-- **PDF**: Formatted report with summaries and links
-- **CSV**: Raw data for further analysis
+## 📁 Project Structure
 
-## How it works
+```
+AI-news-digest/
+├── app.py                      # Flask web application
+├── enhanced_rss_feeds.py       # Enhanced RSS feed management
+├── enhanced_summarization.py   # AI-powered analysis and summarization
+├── enhanced_ui.py              # Enhanced UI report generation
+├── requirements.txt            # Python dependencies
+├── .env.example               # Environment variables template
+├── templates/
+│   └── index.html             # Web interface template
+├── static/
+│   ├── css/
+│   │   └── style.css          # Application styling
+│   └── js/
+│       └── script.js          # Frontend functionality
+├── reports/                   # Generated reports (ignored by git)
+├── legacy/                    # Legacy files and documentation
+└── README.md                  # This file
+```
 
-1. Fetches recent articles from RSS feeds
-2. Extracts content using newspaper3k or BeautifulSoup
-3. Generates summaries using Fireworks AI
-4. Filters duplicates with AI
-5. Creates PDF and CSV reports
-6. Caches results to avoid reprocessing
+## 🔧 Usage
 
-## State management
+### Web Interface
+1. Open `http://localhost:8080` in your browser
+2. Click "Generate Report" to start the analysis
+3. Monitor real-time progress updates
+4. Download generated PDF reports from the interface
 
-- `article_cache.json` - Stores summaries (7 days)
-- `sent_articles.json` - Tracks processed articles (30 days)
+### Features Available:
+- **Impact Scoring**: Articles rated 1-10 based on significance
+- **Categorization**: Automatic classification (research, product, funding, etc.)
+- **Market Analysis**: Business implications and investment insights
+- **Trend Analysis**: Cross-article patterns and emerging themes
+- **Executive Summaries**: High-level overviews for decision makers
 
-## Requirements
+## 📊 Data Sources
 
-- Python 3.7+
-- Fireworks AI API key
-- feedparser==6.0.11
-- openai==1.64.0
-- python-dotenv==1.0.1
-- reportlab==4.4.1
-- newspaper3k==0.2.8
-- beautifulsoup4==4.12.2
-- requests==2.31.0
+The application monitors 19+ AI/ML sources including:
+- DeepMind Research
+- OpenAI Blog
+- Anthropic News
+- Hugging Face Blog
+- NVIDIA AI Blog
+- Google AI Blog
+- Meta AI Research
+- And many more...
 
----
+## 🔒 Security & Privacy
 
-A simple, efficient solution for staying updated on AI industry news.
+- API keys are stored locally in `.env` file
+- No data is sent to external services except for AI analysis
+- Generated reports are stored locally
+- Cache files help minimize API usage
+
+## 📈 Performance Features
+
+- **Intelligent Caching**: Avoids re-processing articles
+- **Rate Limiting**: Prevents API quota exhaustion
+- **Batch Processing**: Efficient API usage
+- **Health Monitoring**: RSS feed reliability tracking
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🔧 Troubleshooting
+
+### Common Issues:
+
+1. **Port 8080 in use**: Change port in `app.py` or stop conflicting service
+2. **API Key errors**: Ensure `.env` file is properly configured
+3. **PDF generation fails**: Check `reportlab` installation
+4. **Rate limiting**: Wait between report generations
+
+
+**Note**: This application uses AI services that may incur costs. Monitor your API usage accordingly.

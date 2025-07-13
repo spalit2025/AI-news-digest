@@ -22,3 +22,16 @@ sent_articles.json
 
 # Reports - Generated files, not tracked
 reports/
+
+# Legacy files - Old versions and documentation
+legacy/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*.swo
+*~
+
+# OS specific
+Thumbs.db

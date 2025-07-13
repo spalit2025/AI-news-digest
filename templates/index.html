@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI News Digest Generator</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-newspaper"></i> AI News Digest Generator</h1>
+            <p class="subtitle">Generate comprehensive AI news reports from multiple sources</p>
+        </header>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">
+                            <i class="fas fa-info-circle"></i>
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Report Generation Section -->
+        <section class="report-generation">
+            <div class="card">
+                <h2><i class="fas fa-cog"></i> Generate New Report</h2>
+                <p>Generate a comprehensive AI news digest from RSS feeds of major AI companies and research organizations.</p>
+                
+                <form method="POST" action="{{ url_for('generate_report') }}" class="generate-form">
+                    <button type="submit" class="btn btn-primary" {% if status.running %}disabled{% endif %}>
+                        {% if status.running %}
+                            <i class="fas fa-spinner fa-spin"></i> Generating Report...
+                        {% else %}
+                            <i class="fas fa-play"></i> Generate Report
+                        {% endif %}
+                    </button>
+                </form>
+
+                <!-- Progress Display -->
+                {% if status.running or status.progress %}
+                    <div class="progress-section">
+                        <div class="progress-bar">
+                            <div class="progress-fill {% if status.running %}animate{% endif %}"></div>
+                        </div>
+                        <div class="progress-text">
+                            <i class="fas fa-info-circle"></i>
+                            <span id="progress-message">{{ status.progress }}</span>
+                        </div>
+                        {% if status.error %}
+                            <div class="error-message">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Error: {{ status.error }}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+
+        <!-- Sources Information -->
+        <section class="sources-info">
+            <div class="card">
+                <h2><i class="fas fa-rss"></i> News Sources</h2>
+                <div class="sources-grid">
+                    <div class="source-item">
+                        <i class="fab fa-nvidia"></i>
+                        <span>NVIDIA AI Blog</span>
+                    </div>
+                    <div class="source-item">
+                        <i class="fas fa-robot"></i>
+                        <span>Hugging Face</span>
+                    </div>
+                    <div class="source-item">
+                        <i class="fab fa-google"></i>
+                        <span>Google AI</span>
+                    </div>
+                    <div class="source-item">
+                        <i class="fas fa-brain"></i>
+                        <span>OpenAI</span>
+                    </div>
+                    <div class="source-item">
+                        <i class="fab fa-facebook"></i>
+                        <span>Meta AI</span>
+                    </div>
+                    <div class="source-item">
+                        <i class="fas fa-microscope"></i>
+                        <span>Anthropic</span>
+                    </div>
+                    <div class="source-item">
+                        <i class="fab fa-uber"></i>
+                        <span>Uber AI</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Reports List -->
+        <section class="reports-list">
+            <div class="card">
+                <h2><i class="fas fa-file-pdf"></i> Generated Reports</h2>
+                
+                {% if reports %}
+                    <div class="reports-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Report Name</th>
+                                    <th>Created</th>
+                                    <th>Size</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for report in reports %}
+                                    <tr class="{% if report.filename == status.last_report %}highlight{% endif %}">
+                                        <td>
+                                            <i class="fas fa-file-pdf"></i>
+                                            {{ report.filename }}
+                                            {% if report.filename == status.last_report %}
+                                                <span class="new-badge">NEW</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ report.created }}</td>
+                                        <td>{{ report.size }}</td>
+                                        <td class="actions">
+                                            <a href="{{ url_for('download_report', filename=report.filename) }}" 
+                                               class="btn btn-success btn-sm">
+                                                <i class="fas fa-download"></i> Download
+                                            </a>
+                                            <a href="{{ url_for('delete_report', filename=report.filename) }}" 
+                                               class="btn btn-danger btn-sm"
+                                               onclick="return confirm('Are you sure you want to delete this report?')">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-file-pdf"></i>
+                        <p>No reports generated yet. Click "Generate Report" to create your first AI news digest!</p>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer>
+            <p>&copy; 2024 AI News Digest Generator | Powered by RSS feeds and AI summarization</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html> 
