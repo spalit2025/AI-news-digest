@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, flash
+from werkzeug.utils import secure_filename
 import os
 import json
 import threading
@@ -96,7 +97,7 @@ try:
     if not os.path.exists(REPORTS_DIR):
         os.makedirs(REPORTS_DIR)
 except ImportError:
-    REPORTS_DIR = "reports"
+    REPORTS_DIR = Path("reports")
     if not os.path.exists(REPORTS_DIR):
         os.makedirs(REPORTS_DIR)
 
@@ -142,7 +143,7 @@ else:
         sys.exit(1)
 
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-here'  # Change this to a secure secret key
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', os.urandom(24).hex())
 
 # Thread-safe report status management implemented above
 
@@ -360,6 +361,7 @@ def get_status():
 def download_report(filename):
     """Download a specific report file"""
     try:
+        filename = secure_filename(filename)
         file_path = REPORTS_DIR / filename
         if file_path.exists() and file_path.suffix == '.pdf':
             return send_file(file_path, as_attachment=True)
@@ -374,6 +376,7 @@ def download_report(filename):
 def delete_report(filename):
     """Delete a specific report file"""
     try:
+        filename = secure_filename(filename)
         file_path = REPORTS_DIR / filename
         if file_path.exists() and file_path.suffix == '.pdf':
             file_path.unlink()
@@ -465,4 +468,4 @@ if __name__ == '__main__':
         print("⚠️ Running in basic mode - enhanced features not available")
     
     # Run the Flask app
-    app.run(debug=True, host='0.0.0.0', port=8080) 
+    app.run(debug=os.environ.get('FLASK_DEBUG', 'false').lower() == 'true', host='0.0.0.0', port=8080)
