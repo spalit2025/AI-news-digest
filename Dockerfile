@@ -15,10 +15,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Create reports directory
-RUN mkdir -p /data/reports
+RUN mkdir -p reports
 
 ENV PYTHONUNBUFFERED=1
 
-EXPOSE ${PORT:-8080}
-
-CMD sh -c "gunicorn app:app --bind 0.0.0.0:${PORT:-8080} --workers 2 --timeout 300"
+CMD sh -c "echo 'Starting on port ${PORT:-8080}' && exec gunicorn app:app --bind 0.0.0.0:${PORT:-8080} --workers 2 --timeout 300 --access-logfile - --error-logfile -"
