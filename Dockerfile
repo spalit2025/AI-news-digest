@@ -18,5 +18,6 @@ COPY . .
 RUN mkdir -p reports
 
 ENV PYTHONUNBUFFERED=1
+ENV PORT=8080
 
-CMD sh -c "echo 'Starting on port ${PORT:-8080}' && exec gunicorn app:app --bind 0.0.0.0:${PORT:-8080} --workers 2 --timeout 300 --access-logfile - --error-logfile -"
+CMD ["sh", "-c", "exec gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 300 --access-logfile - --error-logfile -"]
