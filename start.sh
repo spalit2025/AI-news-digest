@@ -1,6 +1,7 @@
 #!/bin/sh
+PORT="${PORT:-8080}"
 exec gunicorn app:app \
-    --bind "0.0.0.0:${PORT:-8080}" \
+    --bind "0.0.0.0:$PORT" \
     --workers 2 \
     --timeout 300 \
     --access-logfile - \
