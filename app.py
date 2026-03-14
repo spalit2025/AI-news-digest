@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, flash
 from werkzeug.utils import secure_filename
 import os
+import secrets
 import threading
 from datetime import datetime
 from pathlib import Path
@@ -109,7 +110,7 @@ elif _fireworks_key == "your_fireworks_api_key_here":
     print("WARNING: FIREWORKS_API_KEY is set to placeholder. Update .env with your actual key.")
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-insecure-key-change-in-production")
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", secrets.token_hex(32))
 
 
 # ---------------------------------------------------------------------------
