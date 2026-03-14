@@ -194,10 +194,11 @@ function updateProgress(data) {
     
     // Update error display
     const errorMessage = document.querySelector('.error-message');
+    const errorText = document.getElementById('error-text');
     if (errorMessage) {
         if (data.error) {
-            errorMessage.style.display = 'block';
-            errorMessage.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Error: ${data.error}`;
+            errorMessage.style.display = 'flex';
+            if (errorText) errorText.textContent = data.error;
         } else {
             errorMessage.style.display = 'none';
         }
