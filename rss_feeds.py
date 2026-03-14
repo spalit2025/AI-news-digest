@@ -3,9 +3,12 @@
 
 import requests
 import feedparser
+import json
 from datetime import datetime
+from pathlib import Path
 import time
 from typing import Dict, List, Optional, Tuple
+from bs4 import BeautifulSoup
 
 class RSSFeedValidator:
     """Validates and maintains RSS feed health"""
@@ -175,6 +178,102 @@ def validate_and_fix_feeds() -> Dict[str, str]:
                 print(f"❌ Could not fix {source}: {result['status']}")
     
     return fixed_feeds
+
+def fetch_rss_articles(feeds: Dict[str, str]) -> List[Dict]:
+    """Fetch articles from multiple RSS feeds.
+
+    Args:
+        feeds: Dict mapping source name to feed URL.
+
+    Returns:
+        List of article dicts with keys: title, link, source, published, description.
+    """
+    articles = []
+    for source_name, feed_url in feeds.items():
+        try:
+            response = requests.get(feed_url, timeout=15)
+            feed = feedparser.parse(response.content)
+            for entry in feed.entries:
+                articles.append({
+                    'title': entry.get('title', 'Untitled'),
+                    'link': entry.get('link', ''),
+                    'source': source_name,
+                    'published': entry.get('published', ''),
+                    'description': entry.get('summary', entry.get('description', '')),
+                })
+        except Exception as e:
+            print(f"Error fetching {source_name}: {e}")
+    return articles
+
+
+def extract_article_content(article: Dict) -> Optional[str]:
+    """Extract readable text content from an article URL.
+
+    Falls back to the article description if full content extraction fails.
+    """
+    try:
+        url = article.get('link', '')
+        if not url:
+            return article.get('description', '')
+
+        response = requests.get(url, timeout=10, headers={
+            'User-Agent': 'Mozilla/5.0 (compatible; AINewsDigest/1.0)'
+        })
+        if response.status_code != 200:
+            return article.get('description', '')
+
+        soup = BeautifulSoup(response.text, 'lxml')
+
+        # Remove non-content elements
+        for tag in soup(['script', 'style', 'nav', 'footer', 'header', 'aside']):
+            tag.decompose()
+
+        text = soup.get_text(separator=' ', strip=True)
+
+        if len(text) > 200:
+            return text[:5000]
+
+        return article.get('description', '')
+    except Exception:
+        return article.get('description', '')
+
+
+class StateTracker:
+    """Tracks processed articles to avoid duplicate analysis.
+
+    Uses a JSON file to persist the set of already-processed article links
+    across runs.
+    """
+
+    def __init__(self, state_file: str = 'sent_articles.json'):
+        self.state_file = Path(state_file)
+        self._sent = self._load()
+
+    def _load(self) -> set:
+        try:
+            if self.state_file.exists():
+                with open(self.state_file, 'r') as f:
+                    return set(json.load(f))
+        except (json.JSONDecodeError, TypeError, IOError):
+            pass
+        return set()
+
+    def _save(self):
+        try:
+            with open(self.state_file, 'w') as f:
+                json.dump(list(self._sent), f)
+        except IOError as e:
+            print(f"Warning: Could not save state: {e}")
+
+    def filter_new_articles(self, articles: List[Dict]) -> List[Dict]:
+        """Return only articles not previously processed."""
+        return [a for a in articles if a.get('link', '') not in self._sent]
+
+    def mark_articles_sent(self, links: List[str]):
+        """Mark article links as processed."""
+        self._sent.update(links)
+        self._save()
+
 
 if __name__ == "__main__":
     # Test the enhanced feeds

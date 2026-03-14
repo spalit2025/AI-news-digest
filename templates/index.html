@@ -32,7 +32,7 @@
         <section class="source-selection">
             <div class="card">
                 <h2><i class="fas fa-rss"></i> Select News Sources</h2>
-                <p>Choose which sources to include in your report {% if enhanced_mode %}({{ available_sources|length }} categories available){% endif %}</p>
+                <p>Choose which sources to include in your report ({{ available_sources|length }} categories available)</p>
                 
                 <form method="POST" action="{{ url_for('generate_report') }}" class="generate-form" id="sourceForm">
                     <div class="source-controls">
@@ -172,11 +172,12 @@
                                                class="btn btn-success btn-sm">
                                                 <i class="fas fa-download"></i> Download
                                             </a>
-                                            <a href="{{ url_for('delete_report', filename=report.filename) }}" 
-                                               class="btn btn-danger btn-sm"
-                                               onclick="return confirm('Are you sure you want to delete this report?')">
-                                                <i class="fas fa-trash"></i> Delete
-                                            </a>
+                                            <form method="POST" action="{{ url_for('delete_report', filename=report.filename) }}" style="display:inline;">
+                                                <button type="submit" class="btn btn-danger btn-sm"
+                                                        onclick="return confirm('Are you sure you want to delete this report?')">
+                                                    <i class="fas fa-trash"></i> Delete
+                                                </button>
+                                            </form>
                                         </td>
                                     </tr>
                                 {% endfor %}
@@ -195,9 +196,7 @@
         <!-- Footer -->
         <footer>
             <p>&copy; 2024 AI News Digest Generator | Powered by RSS feeds and AI summarization</p>
-            {% if enhanced_mode %}
-                <p><i class="fas fa-rocket"></i> Enhanced mode active - Advanced RSS feeds and AI analysis</p>
-            {% endif %}
+            <p><i class="fas fa-rocket"></i> Powered by AI-driven RSS analysis and impact scoring</p>
         </footer>
     </div>
 

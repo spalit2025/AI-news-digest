@@ -77,15 +77,47 @@ class EnhancedSummarizer:
         
         return None
     
+    def _parse_json_response(self, raw: str) -> Optional[Dict]:
+        """Extract JSON from an LLM response using multiple strategies.
+
+        Tries: direct parse, code-block extraction, greedy object extraction.
+        Returns the parsed dict or None.
+        """
+        cleaned = raw.strip()
+
+        # Method 1: Direct JSON parsing
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError:
+            pass
+
+        # Method 2: Extract JSON from code blocks
+        json_match = re.search(r'```(?:json)?\s*(.*?)\s*```', cleaned, re.DOTALL)
+        if json_match:
+            try:
+                return json.loads(json_match.group(1).strip())
+            except json.JSONDecodeError:
+                pass
+
+        # Method 3: Find JSON object in text
+        json_match = re.search(r'\{.*\}', cleaned, re.DOTALL)
+        if json_match:
+            try:
+                return json.loads(json_match.group(0))
+            except json.JSONDecodeError:
+                pass
+
+        return None
+
     def analyze_article(self, article: Dict) -> ArticleAnalysis:
         """Analyze a single article with comprehensive AI analysis"""
-        
+
         # Prepare content for analysis
-        content = article.get('content', '')[:1500]  # Limit content length
+        content = (article.get('content') or '')[:1500]  # Limit content length
         title = article.get('title', '')
         source = article.get('source', '')
         link = article.get('link', '')
-        
+
         # Single comprehensive analysis prompt to reduce API calls
         comprehensive_prompt = f"""You are analyzing an AI/tech article. Please respond with ONLY valid JSON.
 
@@ -108,51 +140,23 @@ RESPONSE FORMAT (copy exactly):
 }}
 
 Respond with ONLY the JSON above. No other text."""
-        
+
         messages = [
             {"role": "system", "content": "You are a JSON API. Respond only with valid JSON. No explanations or additional text."},
             {"role": "user", "content": comprehensive_prompt}
         ]
-        
+
         print(f"📊 Analyzing article: {title[:50]}...")
-        
+
         response = self._rate_limited_api_call(messages, max_tokens=1500)
-        
+
         if not response:
             print(f"❌ Failed to analyze article: {title[:50]}")
             return self._create_fallback_analysis(article)
-        
+
         try:
-            # Clean the response
-            cleaned_response = response.strip()
-            
-            # Try multiple JSON extraction methods
-            analysis_data = None
-            
-            # Method 1: Direct JSON parsing
-            try:
-                analysis_data = json.loads(cleaned_response)
-            except json.JSONDecodeError:
-                pass
-            
-            # Method 2: Extract JSON from code blocks
-            if not analysis_data:
-                json_match = re.search(r'```(?:json)?\s*(.*?)\s*```', cleaned_response, re.DOTALL)
-                if json_match:
-                    try:
-                        analysis_data = json.loads(json_match.group(1).strip())
-                    except json.JSONDecodeError:
-                        pass
-            
-            # Method 3: Find JSON object in text
-            if not analysis_data:
-                json_match = re.search(r'\{.*\}', cleaned_response, re.DOTALL)
-                if json_match:
-                    try:
-                        analysis_data = json.loads(json_match.group(0))
-                    except json.JSONDecodeError:
-                        pass
-            
+            analysis_data = self._parse_json_response(response)
+
             # If we successfully parsed JSON, create analysis
             if analysis_data:
                 return ArticleAnalysis(
@@ -258,38 +262,10 @@ Respond with ONLY the JSON above. No other text."""
         if not response:
             print("❌ Failed to generate trend analysis")
             return self._create_fallback_trends(analyses)
-        
+
         try:
-            # Clean the response
-            cleaned_response = response.strip()
-            
-            # Try multiple JSON extraction methods
-            trend_data = None
-            
-            # Method 1: Direct JSON parsing
-            try:
-                trend_data = json.loads(cleaned_response)
-            except json.JSONDecodeError:
-                pass
-            
-            # Method 2: Extract JSON from code blocks
-            if not trend_data:
-                json_match = re.search(r'```(?:json)?\s*(.*?)\s*```', cleaned_response, re.DOTALL)
-                if json_match:
-                    try:
-                        trend_data = json.loads(json_match.group(1).strip())
-                    except json.JSONDecodeError:
-                        pass
-            
-            # Method 3: Find JSON object in text
-            if not trend_data:
-                json_match = re.search(r'\{.*\}', cleaned_response, re.DOTALL)
-                if json_match:
-                    try:
-                        trend_data = json.loads(json_match.group(0))
-                    except json.JSONDecodeError:
-                        pass
-            
+            trend_data = self._parse_json_response(response)
+
             if trend_data:
                 print("✅ Trend analysis completed")
                 return trend_data

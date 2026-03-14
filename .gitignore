@@ -33,5 +33,13 @@ legacy/
 *.swo
 *~
 
+# Test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Tasks (local planning docs)
+tasks/
+
 # OS specific
 Thumbs.db
