@@ -185,13 +185,20 @@ def run_enhanced_pipeline(selected_sources=None):
         report_manager.update_progress("No articles found from selected sources.")
         return None
 
-    # Step 3: Filter new articles
+    # Step 3: Filter new articles and cap to avoid long runs
+    MAX_ARTICLES_PER_RUN = 25
     report_manager.update_progress("Filtering for new articles...")
     new_articles = state_tracker.filter_new_articles(articles)
 
     if not new_articles:
         report_manager.update_progress("No new articles to process.")
         return None
+
+    if len(new_articles) > MAX_ARTICLES_PER_RUN:
+        report_manager.update_progress(
+            f"Found {len(new_articles)} new articles, processing top {MAX_ARTICLES_PER_RUN}..."
+        )
+        new_articles = new_articles[:MAX_ARTICLES_PER_RUN]
 
     # Step 4: Extract content
     report_manager.update_progress(
