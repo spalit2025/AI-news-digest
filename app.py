@@ -391,8 +391,9 @@ def debug_test_api():
             base_url="https://api.fireworks.ai/inference/v1",
             api_key=fireworks_key,
         )
+        model_id = "accounts/fireworks/models/llama-v3p1-8b-instruct"
         response = client.chat.completions.create(
-            model="accounts/fireworks/models/llama4-maverick-instruct-basic",
+            model=model_id,
             messages=[
                 {"role": "user", "content": "Reply with exactly: {\"test\": \"ok\"}"}
             ],
@@ -402,7 +403,7 @@ def debug_test_api():
         content = response.choices[0].message.content.strip()
         return jsonify({
             "status": "ok",
-            "model": "llama4-maverick-instruct-basic",
+            "model": model_id,
             "response": content,
             "api_key_prefix": fireworks_key[:8] + "...",
         })
@@ -410,7 +411,7 @@ def debug_test_api():
         return jsonify({
             "status": "error",
             "error": str(e)[:500],
-            "model": "llama4-maverick-instruct-basic",
+            "model": "llama-v3p1-8b-instruct",
             "api_key_prefix": fireworks_key[:8] + "...",
         }), 500
 
