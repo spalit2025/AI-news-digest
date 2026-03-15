@@ -49,7 +49,7 @@ class EnhancedSummarizer:
                     time.sleep(RATE_LIMIT_DELAY - time_since_last)
                 
                 response = self.client.chat.completions.create(
-                    model="accounts/fireworks/models/llama4-scout-instruct-basic",
+                    model="accounts/fireworks/models/llama4-maverick-instruct-basic",
                     messages=messages,
                     temperature=0.1,
                     max_tokens=max_tokens
