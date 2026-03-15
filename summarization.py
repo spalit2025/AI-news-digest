@@ -38,6 +38,7 @@ class EnhancedSummarizer:
             api_key=api_key
         )
         self.last_api_call = 0
+        self._api_verified = False
         
     def _rate_limited_api_call(self, messages: List[Dict], max_tokens: int = 1000) -> Optional[str]:
         """Make API call with rate limiting and retry logic"""
@@ -47,34 +48,39 @@ class EnhancedSummarizer:
                 time_since_last = time.time() - self.last_api_call
                 if time_since_last < RATE_LIMIT_DELAY:
                     time.sleep(RATE_LIMIT_DELAY - time_since_last)
-                
+
                 response = self.client.chat.completions.create(
                     model="accounts/fireworks/models/llama4-maverick-instruct-basic",
                     messages=messages,
                     temperature=0.1,
                     max_tokens=max_tokens
                 )
-                
+
                 self.last_api_call = time.time()
-                
+
                 if response and response.choices and response.choices[0].message:
-                    return response.choices[0].message.content.strip()
+                    content = response.choices[0].message.content.strip()
+                    if not self._api_verified:
+                        print(f"API WORKING: First successful call to Fireworks API")
+                        self._api_verified = True
+                    return content
                 else:
+                    print(f"API returned empty response on attempt {attempt + 1}")
                     return None
-                    
+
             except Exception as e:
                 error_msg = str(e)
+                print(f"API ERROR (attempt {attempt + 1}/{MAX_RETRIES}): {error_msg[:200]}")
                 if "429" in error_msg or "rate limit" in error_msg.lower():
-                    wait_time = RETRY_DELAY * (2 ** attempt)  # Exponential backoff
-                    print(f"Rate limit hit, waiting {wait_time} seconds before retry {attempt + 1}/{MAX_RETRIES}")
+                    wait_time = RETRY_DELAY * (2 ** attempt)
+                    print(f"Rate limit hit, waiting {wait_time}s")
                     time.sleep(wait_time)
                     continue
                 else:
-                    print(f"API error on attempt {attempt + 1}: {error_msg}")
                     if attempt == MAX_RETRIES - 1:
                         return None
                     time.sleep(RETRY_DELAY)
-        
+
         return None
     
     def _parse_json_response(self, raw: str) -> Optional[Dict]:

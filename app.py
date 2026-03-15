@@ -378,6 +378,43 @@ def health():
     })
 
 
+@app.route("/debug/test-api")
+def debug_test_api():
+    """Test the Fireworks API with a single call to diagnose issues."""
+    fireworks_key = os.getenv("FIREWORKS_API_KEY")
+    if not fireworks_key:
+        return jsonify({"error": "FIREWORKS_API_KEY not set"}), 500
+
+    try:
+        from openai import OpenAI
+        client = OpenAI(
+            base_url="https://api.fireworks.ai/inference/v1",
+            api_key=fireworks_key,
+        )
+        response = client.chat.completions.create(
+            model="accounts/fireworks/models/llama4-maverick-instruct-basic",
+            messages=[
+                {"role": "user", "content": "Reply with exactly: {\"test\": \"ok\"}"}
+            ],
+            temperature=0.0,
+            max_tokens=50,
+        )
+        content = response.choices[0].message.content.strip()
+        return jsonify({
+            "status": "ok",
+            "model": "llama4-maverick-instruct-basic",
+            "response": content,
+            "api_key_prefix": fireworks_key[:8] + "...",
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "error": str(e)[:500],
+            "model": "llama4-maverick-instruct-basic",
+            "api_key_prefix": fireworks_key[:8] + "...",
+        }), 500
+
+
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
