@@ -1,5 +1,7 @@
 # AI News Digest
 
+![AI News Digest](screenshot.png)
+
 Staying current on AI research and industry news means scanning dozens of
 sources daily -- blogs, research labs, company announcements -- and figuring
 out what actually matters. Most of it is noise.
