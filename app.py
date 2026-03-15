@@ -391,7 +391,7 @@ def debug_test_api():
             base_url="https://api.fireworks.ai/inference/v1",
             api_key=fireworks_key,
         )
-        model_id = "accounts/fireworks/models/llama-v3p1-8b-instruct"
+        model_id = "accounts/fireworks/models/deepseek-v3p1"
         response = client.chat.completions.create(
             model=model_id,
             messages=[
@@ -411,7 +411,7 @@ def debug_test_api():
         return jsonify({
             "status": "error",
             "error": str(e)[:500],
-            "model": "llama-v3p1-8b-instruct",
+            "model": "deepseek-v3p1",
             "api_key_prefix": fireworks_key[:8] + "...",
         }), 500
 
